@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
+
+import 'quiz_brain.dart';
 
 void main() => runApp(Quizzler());
 
@@ -25,6 +28,77 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
+  QuizBrain brain = QuizBrain();
+  List<Icon> scoreKeeper = [];
+
+  void correctAnswer() {
+    scoreKeeper.add(
+      Icon(
+        Icons.check,
+        color: Colors.green,
+      ),
+    );
+  }
+
+  void wrongAnswer() {
+    scoreKeeper.add(
+      Icon(
+        Icons.close,
+        color: Colors.red,
+      ),
+    );
+  }
+
+  VoidCallback answer(bool userAnswer) {
+    return () {
+      setState(() {
+        if (brain.isCorrect(userAnswer)) {
+          correctAnswer();
+        } else {
+          wrongAnswer();
+        }
+
+        brain.nextQuestion(finishQuiz);
+      });
+    };
+  }
+
+  void finishQuiz() {
+    int correct = scoreKeeper.where((Icon icon) {
+      return icon.color == Colors.green;
+    }).length;
+    int wrong = scoreKeeper.length - correct;
+
+    Alert(
+        context: context,
+        title: 'Congratulations',
+        style: AlertStyle(
+          animationType: AnimationType.grow,
+          isCloseButton: false,
+          isOverlayTapDismiss: false,
+        ),
+        content: Column(
+          children: <Widget>[
+            Text('You\'ve got $correct answers correct'),
+            Text('and'),
+            Text('$wrong answers wrong!')
+          ],
+        ),
+        buttons: [
+          DialogButton(
+            child: Text('Ok'),
+            onPressed: () {
+              setState(() {
+                brain.firstQuestion();
+                scoreKeeper = <Icon>[];
+
+                Navigator.pop(context);
+              });
+            },
+          )
+        ]).show();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -37,7 +111,7 @@ class _QuizPageState extends State<QuizPage> {
             padding: EdgeInsets.all(10.0),
             child: Center(
               child: Text(
-                'This is where the question text will go.',
+                brain.currentQuestion.question,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 25.0,
@@ -60,9 +134,7 @@ class _QuizPageState extends State<QuizPage> {
                   fontSize: 20.0,
                 ),
               ),
-              onPressed: () {
-                //The user picked true.
-              },
+              onPressed: answer(true),
             ),
           ),
         ),
@@ -78,13 +150,13 @@ class _QuizPageState extends State<QuizPage> {
                   color: Colors.white,
                 ),
               ),
-              onPressed: () {
-                //The user picked false.
-              },
+              onPressed: answer(false),
             ),
           ),
         ),
-        //TODO: Add a Row here as your score keeper
+        Row(
+          children: scoreKeeper,
+        )
       ],
     );
   }
